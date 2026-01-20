@@ -1,0 +1,20 @@
+#cloud-config
+package_update: false
+package_upgrade: false
+runcmd:
+  # Install K3s in background to prevent Terraform timeout
+  - (curl -sfL https://get.k3s.io | K3S_TOKEN="k8s-otomatik-sifre-2026" sh -) &
+  - ufw disable
+  # Setup Kubeconfig for non-root user (ubuntu)
+  - mkdir -p /home/ubuntu/.kube
+  - |
+    (
+    # Wait until K3s generates the config file
+    while [ ! -f /etc/rancher/k3s/k3s.yaml ]; do sleep 2; done
+    cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+    chown -R ubuntu:ubuntu /home/ubuntu/.kube/
+    chmod 600 /home/ubuntu/.kube/config
+    # Set environment variable and create kubectl alias
+    echo "export KUBECONFIG=/home/ubuntu/.kube/config" >> /home/ubuntu/.bashrc
+    ln -s /usr/local/bin/k3s /usr/local/bin/kubectl
+    ) &

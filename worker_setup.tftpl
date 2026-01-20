@@ -1,0 +1,13 @@
+#cloud-config
+package_update: false
+package_upgrade: false
+runcmd:
+  - |
+    (
+    # Wait until Master API Server (6443) is reachable
+    until curl -k https://${master_ip}:6443; do sleep 5; done
+    # Install K3s Agent and join the cluster
+    curl -sfL https://get.k3s.io | K3S_URL=https://${master_ip}:6443 \
+    K3S_TOKEN="${join_token}" sh -
+    ) &
+  - ufw disable
